@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Listen In</title>
+<style>
+  :root {
+    --cream: #f6efe0;
+    --ink: #2b2a24;
+    --dawn-top: #f4b26b;
+    --dawn-bottom: #e8776a;
+    --moss: #2f4a3a;
+    --moss-deep: #1f3327;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: "Iowan Old Style", "Palatino", Georgia, serif;
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top) 28px env(safe-area-inset-bottom);
+  }
+  header { text-align: center; padding: 28px 0 8px; }
+  header h1 { margin: 0; font-size: 2.2rem; font-weight: 600; letter-spacing: 0.01em; }
+  header p { margin: 6px 0 0; font-size: 1.1rem; opacity: 0.7; font-style: italic; }
+
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    padding: 20px 0 32px;
+    min-height: 0;
+  }
+  @media (max-width: 700px) { main { grid-template-columns: 1fr; } }
+
+  .card {
+    border: 0;
+    border-radius: 34px;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 28px;
+    cursor: pointer;
+    font: inherit;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(43, 42, 36, 0.18);
+    transition: transform 0.15s ease;
+  }
+  .card:active { transform: scale(0.985); }
+  .dawn { background: linear-gradient(170deg, var(--dawn-top), var(--dawn-bottom)); }
+  .live { background: linear-gradient(170deg, var(--moss), var(--moss-deep)); }
+
+  .ringwrap { position: relative; width: 230px; height: 230px; }
+  .ringwrap svg.ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 9; }
+  .ring .track { stroke: rgba(255,255,255,0.25); }
+  .ring .prog { stroke: #fff; stroke-linecap: round; stroke-dasharray: 628.3; stroke-dashoffset: 628.3; }
+  .icon { position: absolute; inset: 38px; }
+  .icon svg { width: 100%; height: 100%; }
+
+  .readout {
+    background: rgba(255,255,255,0.92);
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 6px 22px;
+    font-size: 1.5rem;
+    font-variant-numeric: tabular-nums;
+    min-width: 150px;
+    text-align: center;
+  }
+  .card.connecting .readout { opacity: 0.75; }
+  .label { font-size: 1.7rem; font-weight: 600; }
+  .sub { font-size: 1.05rem; opacity: 0.9; margin-top: -6px; }
+
+  .species {
+    margin-top: 4px;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    text-align: center;
+    max-width: 90%;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .species:empty { display: none; }
+
+  footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 36px;
+    padding: 4px 0 22px;
+    text-align: center;
+  }
+  .partner { display: flex; flex-direction: column; gap: 2px; }
+  .mark { font-size: 1.35rem; font-weight: 600; letter-spacing: 0.02em; }
+  .line { font-size: 0.95rem; font-style: italic; opacity: 0.7; }
+  .divider { width: 1px; height: 34px; background: rgba(43, 42, 36, 0.25); }
+  @media (max-width: 700px) {
+    footer { flex-direction: column; gap: 10px; }
+    .divider { display: none; }
+  }
+
+  .pulse { animation: pulse 1.6s ease-in-out infinite; transform-origin: center; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Listen In</h1>
+</header>
+
+<main>
+  <!-- DAWN CHORUS -->
+  <button class="card dawn" id="dawnBtn" aria-label="Play this morning's dawn chorus">
+    <div class="ringwrap">
+      <svg class="ring" viewBox="0 0 230 230">
+        <circle class="track" cx="115" cy="115" r="100"/>
+        <circle class="prog" id="dawnProg" cx="115" cy="115" r="100"/>
+      </svg>
+      <div class="icon">
+        <svg viewBox="0 0 100 100" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round">
+          <path d="M14 70 H86"/>
+          <path d="M28 70 A22 22 0 0 1 72 70" fill="rgba(255,255,255,0.25)"/>
+          <path d="M50 26 V14"/>
+          <path d="M24 38 L16 30"/>
+          <path d="M76 38 L84 30"/>
+          <path d="M12 54 H4"/>
+          <path d="M88 54 H96"/>
+          <path d="M30 82 H70" opacity="0.6"/>
+        </svg>
+      </div>
+    </div>
+    <div class="readout" id="dawnTime">0:30</div>
+    <div class="label">Dawn chorus</div>
+    <div class="species" id="species"></div>
+  </button>
+
+  <!-- LIVE -->
+  <button class="card live" id="liveBtn" aria-label="Listen live">
+    <div class="ringwrap">
+      <svg class="ring" viewBox="0 0 230 230">
+        <circle class="track" cx="115" cy="115" r="100"/>
+        <circle class="prog" id="liveProg" cx="115" cy="115" r="100"/>
+      </svg>
+      <div class="icon">
+        <svg viewBox="0 0 100 100" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round">
+          <circle class="pulse" cx="50" cy="50" r="9" fill="#fff" stroke="none"/>
+          <path d="M32 32 A26 26 0 0 0 32 68"/>
+          <path d="M68 32 A26 26 0 0 1 68 68"/>
+          <path d="M20 20 A44 44 0 0 0 20 80" opacity="0.6"/>
+          <path d="M80 20 A44 44 0 0 1 80 80" opacity="0.6"/>
+        </svg>
+      </div>
+    </div>
+    <div class="readout" id="liveTime">LIVE</div>
+    <div class="label">Right now</div>
+  </button>
+</main>
+
+<footer>
+  <div class="partner"><span class="mark">VitalVisitors</span><span class="line">Nature, brought to people in care</span></div>
+  <div class="divider"></div>
+  <div class="partner"><span class="mark">BirdBreak</span><span class="line">Nature breaks for care staff</span></div>
+</footer>
+
+<script>
+/* ===== SETTINGS: change these lines when the real sources exist ===== */
+const DAWN_AUDIO_URL = "dawn-chorus.mp3";   // today's recording from the home Pi
+const SPECIES_URL    = "species.json";      // today's BirdNET list, see format below
+const LIVE_JSON_URL  = "live.json";         // the home Pi writes its current live address here
+const CLIP_SECONDS = 30;
+/* species.json format:
+   {"date":"2026-09-30","species":[{"name":"Carolina Wren","count":14},{"name":"Northern Cardinal","count":9}]}
+*/
+/* ==================================================================== */
+
+const CIRC = 628.3;
+const players = [];
+
+function fmt(s) {
+  s = Math.max(0, Math.ceil(s));
+  return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+}
+
+/* One player per button: plays for CLIP_SECONDS, fills the white ring, then stops itself. */
+function makePlayer(cfg) {
+  const btn = document.getElementById(cfg.btn);
+  const prog = document.getElementById(cfg.prog);
+  const timeEl = document.getElementById(cfg.time);
+  const audio = new Audio();
+  audio.preload = "none";
+  let raf = null;
+  let startedAt = null;
+
+  function setRing(frac) { prog.style.strokeDashoffset = CIRC * (1 - frac); }
+
+  function stop() {
+    cancelAnimationFrame(raf);
+    raf = null;
+    startedAt = null;
+    audio.pause();
+    audio.removeAttribute("src");
+    audio.load();
+    setRing(0);
+    timeEl.textContent = cfg.idle;
+    btn.classList.remove("connecting");
+  }
+
+  function fail(text) {
+    stop();
+    timeEl.textContent = text;
+    setTimeout(() => { if (startedAt === null && !btn.classList.contains("connecting")) timeEl.textContent = cfg.idle; }, 2500);
+  }
+
+  function tick() {
+    const elapsed = (performance.now() - startedAt) / 1000;
+    setRing(Math.min(elapsed / CLIP_SECONDS, 1));
+    timeEl.textContent = fmt(CLIP_SECONDS - elapsed);
+    if (elapsed >= CLIP_SECONDS) { stop(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+
+  /* the clock starts when sound actually starts, so connecting time is not counted */
+  audio.addEventListener("playing", () => {
+    if (startedAt !== null) return;
+    btn.classList.remove("connecting");
+    startedAt = performance.now();
+    raf = requestAnimationFrame(tick);
+  });
+  audio.addEventListener("ended", stop);
+  audio.addEventListener("error", () => { if (audio.getAttribute("src")) fail(cfg.failText); });
+
+  btn.addEventListener("click", () => {
+    if (startedAt !== null || btn.classList.contains("connecting")) { stop(); return; }
+    players.forEach(p => { if (p !== api) p.stop(); });
+    const src = cfg.src();
+    if (!src) { fail(cfg.failText); return; }
+    audio.src = src;
+    btn.classList.add("connecting");
+    timeEl.textContent = "Connecting";
+    audio.play().catch(() => fail(cfg.failText));
+  });
+
+  const api = { stop };
+  players.push(api);
+  setRing(0);
+  timeEl.textContent = cfg.idle;
+  return api;
+}
+
+makePlayer({
+  btn: "dawnBtn", prog: "dawnProg", time: "dawnTime",
+  idle: fmt(CLIP_SECONDS), failText: "No clip yet",
+  src: () => DAWN_AUDIO_URL
+});
+
+/* the live address changes whenever the Pi's tunnel restarts, so look it up ahead of time.
+   It is fetched before any tap because iPads only allow sound to start straight from a tap. */
+let liveUrl = "";
+function loadLive() {
+  fetch(LIVE_JSON_URL, { cache: "no-store" })
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(d => { if (d.url) liveUrl = d.url; })
+    .catch(() => {});
+}
+loadLive();
+setInterval(loadLive, 60000);
+
+makePlayer({
+  btn: "liveBtn", prog: "liveProg", time: "liveTime",
+  idle: "LIVE", failText: "No signal",
+  src: () => liveUrl
+});
+
+/* species list */
+fetch(SPECIES_URL, { cache: "no-store" })
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(d => {
+    if (d.species && d.species.length) {
+      document.getElementById("species").textContent =
+        d.species.slice(0, 6).map(s => s.name).join(" · ");
+    }
+  })
+  .catch(() => {});
+</script>
+</body>
+</html>
