@@ -56,6 +56,11 @@
     transition: transform 0.15s ease;
   }
   .card:active { transform: scale(0.985); }
+  .card > *:not(.vid) { position: relative; z-index: 1; }
+  .vid { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.6s ease; pointer-events: none; background: #000; }
+  .card.playing .vid { opacity: 1; }
+  .card.playing .label { text-shadow: 0 1px 8px rgba(0,0,0,0.6); }
+  .card.playing .icon { opacity: 0.85; }
   .dawn { background: linear-gradient(170deg, var(--dawn-top), var(--dawn-bottom)); }
   .live { background: linear-gradient(170deg, var(--moss), var(--moss-deep)); }
 
@@ -149,6 +154,7 @@
 
   <!-- LIVE -->
   <button class="card live" id="liveBtn" aria-label="Listen live">
+    <video class="vid" id="liveVid" muted playsinline webkit-playsinline></video>
     <div class="ringwrap">
       <svg class="ring" viewBox="0 0 230 230">
         <circle class="track" cx="115" cy="115" r="100"/>
@@ -201,8 +207,17 @@ function makePlayer(cfg) {
   const timeEl = document.getElementById(cfg.time);
   const audio = new Audio();
   audio.preload = "none";
+  const vid = cfg.video ? document.getElementById(cfg.video) : null;
   let raf = null;
   let startedAt = null;
+
+  function stopVideo() {
+    if (!vid) return;
+    btn.classList.remove("playing");
+    vid.pause();
+    vid.removeAttribute("src");
+    vid.load();
+  }
 
   function setRing(frac) { prog.style.strokeDashoffset = CIRC * (1 - frac); }
 
@@ -213,6 +228,7 @@ function makePlayer(cfg) {
     audio.pause();
     audio.removeAttribute("src");
     audio.load();
+    stopVideo();
     setRing(0);
     timeEl.textContent = cfg.idle;
     btn.classList.remove("connecting");
@@ -251,6 +267,14 @@ function makePlayer(cfg) {
     btn.classList.add("connecting");
     timeEl.textContent = "Connecting";
     audio.play().catch(() => fail(cfg.failText));
+    /* video is optional: if the camera stream is missing, sound still plays */
+    const vsrc = vid && cfg.videoSrc ? cfg.videoSrc() : "";
+    if (vsrc) {
+      vid.muted = true;
+      vid.src = vsrc;
+      vid.addEventListener("playing", () => { if (startedAt !== null || btn.classList.contains("connecting")) btn.classList.add("playing"); }, { once: true });
+      vid.play().catch(() => {});
+    }
   });
 
   const api = { stop };
@@ -281,7 +305,9 @@ setInterval(loadLive, 60000);
 makePlayer({
   btn: "liveBtn", prog: "liveProg", time: "liveTime",
   idle: "LIVE", failText: "No signal",
-  src: () => liveUrl
+  src: () => liveUrl,
+  video: "liveVid",
+  videoSrc: () => liveUrl ? liveUrl.replace("/live/", "/cam/") : ""
 });
 
 /* species list */
